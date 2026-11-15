@@ -38,21 +38,42 @@ class FoodMenu:
         self.exit = pygame.transform.scale(pygame.image.load(abs_path('images/sprites/iconCross_beige.png')), (40, 40))
         self.exit_rect = self.exit.get_rect(center=(75, 65))
 
+        self.prompt_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 20)
+        self.yes_btn = pygame.image.load(abs_path('images/sprites/buttonLong_brown.png'))
+        self.no_btn = pygame.image.load(abs_path('images/sprites/buttonLong_brown.png'))
+        self.yes_btn = pygame.transform.scale(self.yes_btn, (110, 42))
+        self.no_btn = pygame.transform.scale(self.no_btn, (110, 42))
+        self.yes_btn_rect = self.yes_btn.get_rect(center=(self.x - 90, self.y + 90))
+        self.no_btn_rect = self.no_btn.get_rect(center=(self.x + 90, self.y + 90))
+        self.yes_text = self.prompt_font.render('Yes', True, (255, 255, 255))
+        self.no_text = self.prompt_font.render('No', True, (255, 255, 255))
+
     def blit_food_menu(self):
         if clicked_feed:
             screen.blit(self.panel, self.panel_rect)
 
-            screen.blit(self.box_1, self.box_1_rect)
-            screen.blit(self.box_2, self.box_2_rect)
-            screen.blit(self.box_3, self.box_3_rect)
+            prompt = self.prompt_font.render('Would you like to play the minigame?', True, (255, 255, 255))
+            prompt_rect = prompt.get_rect(center=(self.x, self.y - 40))
+            screen.blit(prompt, prompt_rect)
 
-            screen.blit(self.food_1, self.food_1_rect)
-            screen.blit(self.food_2, self.food_2_rect)
-            screen.blit(self.food_3, self.food_3_rect)
-
-            screen.blit(self.exit, self.exit_rect)
+            screen.blit(self.yes_btn, self.yes_btn_rect)
+            screen.blit(self.no_btn, self.no_btn_rect)
+            screen.blit(self.yes_text, self.yes_text.get_rect(center=self.yes_btn_rect.center))
+            screen.blit(self.no_text, self.no_text.get_rect(center=self.no_btn_rect.center))
 
     def hover(self, x, y):
+        if clicked_feed:
+            if self.yes_btn_rect.collidepoint((x, y)):
+                self.yes_btn = pygame.transform.scale(pygame.image.load(abs_path('images/sprites/buttonLong_blue.png')), (110, 42))
+            else:
+                self.yes_btn = pygame.transform.scale(pygame.image.load(abs_path('images/sprites/buttonLong_brown.png')), (110, 42))
+
+            if self.no_btn_rect.collidepoint((x, y)):
+                self.no_btn = pygame.transform.scale(pygame.image.load(abs_path('images/sprites/buttonLong_blue.png')), (110, 42))
+            else:
+                self.no_btn = pygame.transform.scale(pygame.image.load(abs_path('images/sprites/buttonLong_brown.png')), (110, 42))
+            return
+
         if self.box_1_rect.collidepoint((x, y)):
             text = pixel_font.render('Prise: 5 Lg Effects: +3', True, (255, 255, 255))
             screen.blit(text, (20, 120))
@@ -73,6 +94,17 @@ class FoodMenu:
             self.box_3 = self.normal_image
 
     def pressed(self, x, y, event):
+        global clicked_feed
+
+        if clicked_feed:
+            if self.yes_btn_rect.collidepoint((x, y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                clicked_feed = False
+                return
+            if self.no_btn_rect.collidepoint((x, y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                clicked_feed = False
+                return
+            return
+
         if self.box_1_rect.collidepoint((x, y)) and event.type == pygame.MOUSEBUTTONDOWN:
             if action['satiety'] + 3 <= 100 and action['logiki'] - 5 >= 0:
                 coin_sound.play()
