@@ -9,6 +9,7 @@ import statisticsClass
 from buttonClass import Button
 from mainConst import action, tamagotchiJump, pixel_font
 from abs_path import abs_path
+from save_manager import SAVE_SLOT_COUNT, get_save_slot_summary, load_slot, save_slot
 
 pygame.init()
 pygame.time.set_timer(pygame.USEREVENT, 2000)
@@ -47,6 +48,121 @@ sleep_image = pygame.transform.scale(pygame.image.load(abs_path('images/sprites/
 day_image = pygame.transform.scale(pygame.image.load(abs_path('images/sprites/day.png')), (50, 50))
 night_image = pygame.transform.scale(pygame.image.load(abs_path('images/sprites/night.png')), (50, 50))
 gameover_text = pixel_font.render('If you want play one more time, you have to restart game', True, (75, 255, 255))
+
+
+def reset_game_state():
+    global daysCount
+    action['satiety'] = 100
+    action['toilet'] = 100
+    action['happy'] = 100
+    action['health'] = 100
+    action['logiki'] = 50
+    daysCount = 0
+
+
+def save_current_game(slot_index, slot_name=None):
+    if slot_index is None:
+        return
+    save_slot(slot_index, action.copy(), slot_name or f'Save {slot_index}', days_lived=daysCount)
+
+
+def load_game_slot(slot_index):
+    global daysCount
+    slot_data = load_slot(slot_index)
+    action.update(slot_data.get('game_data', {}))
+    daysCount = int(slot_data.get('days_lived', 0))
+    return slot_data
+
+
+def fit_text(font, text, max_width):
+    if text is None:
+        text = ''
+    if font.size(text)[0] <= max_width:
+        return text
+    clipped = text
+    while clipped and font.size(clipped + '...')[0] > max_width:
+        clipped = clipped[:-1]
+    return clipped + '...'
+
+
+def save_selection_screen():
+    slot_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 18)
+    avatar = pygame.transform.scale(pygame.image.load(abs_path('images/sprites/logika.png')), (52, 52))
+    slot_buttons = []
+    for index in range(1, SAVE_SLOT_COUNT + 1):
+        slot_buttons.append((index, Button(400, 120 + (index - 1) * 120, 300, 120,
+                                         abs_path('images/sprites/buttonLong_brown.png'), '')))
+    back_btn = Button(400, 446, 180, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Back')
+
+    while True:
+        screen.blit(background_menu[0], (0, 0))
+        title = pixel_font.render('Choose a save slot', True, (255, 255, 255))
+        screen.blit(title, (220, 20))
+
+        for slot_index, button in slot_buttons:
+            button.blit_btn()
+            summary = get_save_slot_summary(slot_index)
+            content_rect = button.rect.inflate(-26, -16)
+            right_marker = pygame.Rect(button.rect.right - 64, button.rect.centery - 26, 52, 52)
+
+            if summary['used']:
+                slot_name = fit_text(slot_font, summary['name'], content_rect.width - 80)
+                name_text = slot_font.render(slot_name, True, (255, 255, 255))
+                screen.blit(name_text, (content_rect.x + 10, content_rect.y + 6))
+
+                days_text = slot_font.render(f'Days: {summary["days_lived"]}', True, (255, 255, 255))
+                screen.blit(days_text, (content_rect.x + 10, content_rect.y + 28))
+
+                last_save = summary['last_saved_at'] or 'No save yet'
+                last_save_label = slot_font.render('Last save:', True, (255, 255, 255))
+                screen.blit(last_save_label, (content_rect.x + 10, content_rect.y + 50))
+                last_save_text = slot_font.render(fit_text(slot_font, last_save, content_rect.width - 130), True, (255, 255, 255))
+                screen.blit(last_save_text, (content_rect.x + 10, content_rect.y + 72))
+                screen.blit(avatar, (right_marker.x, right_marker.y))
+            else:
+                empty_text = slot_font.render('Empty Slot', True, (255, 255, 255))
+                screen.blit(empty_text, (content_rect.x + 10, content_rect.y + 22))
+                new_text = slot_font.render('New game', True, (255, 255, 255))
+                screen.blit(new_text, (content_rect.x + 10, content_rect.y + 46))
+
+                plus_circle = pygame.Surface((42, 42), pygame.SRCALPHA)
+                pygame.draw.circle(plus_circle, (255, 255, 255, 220), (21, 21), 21, 2)
+                plus_color = (255, 255, 255)
+                pygame.draw.line(plus_circle, plus_color, (21, 8), (21, 34), 3)
+                pygame.draw.line(plus_circle, plus_color, (8, 21), (34, 21), 3)
+                screen.blit(plus_circle, (right_marker.x + 5, right_marker.y + 5))
+
+        back_btn.blit_btn()
+
+        pos_x, pos_y = pygame.mouse.get_pos()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or event.type == pygame.K_ESCAPE:
+                pygame.quit()
+                return None
+            if back_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                button_sound.play()
+                return None
+            for slot_index, button in slot_buttons:
+                if button.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    button_sound.play()
+                    if get_save_slot_summary(slot_index)['used']:
+                        load_game_slot(slot_index)
+                        return slot_index
+                    reset_game_state()
+                    save_current_game(slot_index, f'Save {slot_index}')
+                    return slot_index
+
+        back_btn.hover(pos_x, pos_y)
+        for _, button in slot_buttons:
+            button.hover(pos_x, pos_y)
+
+        if pygame.mouse.get_focused():
+            screen.blit(cursor, (pos_x, pos_y))
+
+        clock.tick(FPS)
+        pygame.display.update()
+
+
 
 
 def tamagotchiAnimation(x, y):
@@ -142,9 +258,17 @@ button_sound = pygame.mixer.Sound(abs_path('sounds/button.ogg'))
 button_sound.set_volume(0.05)
 
 
-def game():
+def game(slot_index=None):
     global endGame, isSleep, daysCount, night_timer, text_timer, cantClear, cantHelp, game_time, start_time
     start_time = time.time()
+    last_save_time = time.time()
+    slot_name = None
+    if slot_index is not None:
+        slot_data = load_slot(slot_index)
+        slot_name = slot_data.get('save_name') or f'Save {slot_index}'
+        action.update(slot_data.get('game_data', {}))
+        daysCount = int(slot_data.get('days_lived', 0))
+
     pygame.mixer.music.load(abs_path('sounds/backgroundMusic.ogg'))
     pygame.mixer.music.set_volume(0.3)
     pygame.mixer.music.play(loops=-1)
@@ -181,6 +305,9 @@ def game():
                 pygame.quit()
             if event.type == daysEvent:
                 isSleep = True
+            if slot_index is not None and time.time() - last_save_time >= 15:
+                save_current_game(slot_index, slot_name)
+                last_save_time = time.time()
             if not isSleep:
                 if btn_statistic.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
                     statisticsClass.clicked_statistics = True
@@ -234,6 +361,8 @@ def game():
                 isSleep = False
                 night_timer = 0
                 daysCount += 1
+                if slot_index is not None:
+                    save_current_game(slot_index, slot_name)
             night_timer += 1
 
         if cantClear:
@@ -304,8 +433,10 @@ def menu():
                 pygame.quit()
             if start_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
                 button_sound.play()
-                endMenu = True
-                game()
+                selected_slot = save_selection_screen()
+                if selected_slot is not None:
+                    endMenu = True
+                    game(selected_slot)
             if rule_btn.rect.collidepoint(pos_x, pos_y) and event.type == pygame.MOUSEBUTTONDOWN:
                 button_sound.play()
                 panelClass.clicked_help = True
