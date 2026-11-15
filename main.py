@@ -239,13 +239,11 @@ info_toilet = Button(150, 30, 50, 50, abs_path('images/sprites/toilet.png'))
 info_happy = Button(270, 30, 50, 50, abs_path('images/sprites/smile.png'))
 info_health = Button(30, 90, 60, 60, abs_path('images/sprites/health.png'))
 
-btn_statistic = Button(715, 40, 150, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Statistic')
-
 btn_satiety = Button(85, 467, 150, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Feed')
 btn_toilet = Button(285, 467, 150, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Clear')
 btn_play = Button(515, 467, 150, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Play')
 btn_health = Button(715, 467, 150, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Medicine')
-exit_game_btn = Button(560, 40, 120, 40, abs_path('images/sprites/buttonLong_brown.png'), 'Exit')
+menu_btn = Button(645, 40, 70, 40, abs_path('images/sprites/buttonLong_brown.png'), '')
 
 food = foodClass.FoodMenu(400, 250, 750, 450, abs_path('images/sprites/panel_brown.png'),
                           abs_path('images/sprites/buttonSquare_beige_pressed.png'),
@@ -267,6 +265,7 @@ def game(slot_index=None):
     last_save_time = time.time()
     slot_name = None
     exit_prompt_open = False
+    menu_panel_open = False
     save_animation_active = False
     save_animation_start = 0.0
     save_animation_phase = 0
@@ -278,6 +277,9 @@ def game(slot_index=None):
 
     yes_btn = Button(330, 290, 110, 42, abs_path('images/sprites/buttonLong_brown.png'), 'Yes')
     no_btn = Button(470, 290, 110, 42, abs_path('images/sprites/buttonLong_brown.png'), 'No')
+    menu_exit_btn = Button(400, 240, 220, 60, abs_path('images/sprites/buttonLong_brown.png'), 'Exit')
+    menu_back_btn = Button(400, 315, 220, 60, abs_path('images/sprites/buttonLong_brown.png'), 'Menu')
+    close_menu_btn = Button(620, 130, 28, 28, abs_path('images/sprites/buttonLong_brown.png'), 'X')
     dialog_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 20)
     save_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 18)
 
@@ -302,7 +304,6 @@ def game(slot_index=None):
 
         tamagotchiAnimation(330, 340)
 
-        btn_statistic.blit_btn()
         statistics = statisticsClass.Statistics(400, 250, 750, 450, abs_path('images/sprites/panel_brown.png'),
                                                 str(action['logiki']) + ' Lg', 'Name: Tamagotchi', f'Days: {daysCount}')
         btn_satiety.blit_btn()
@@ -321,14 +322,11 @@ def game(slot_index=None):
                 save_current_game(slot_index, slot_name)
                 last_save_time = time.time()
 
-            if not exit_prompt_open:
-                if exit_game_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
-                    exit_prompt_open = True
+            if not exit_prompt_open and not menu_panel_open:
+                if menu_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    menu_panel_open = True
                     button_sound.play()
                 if not isSleep:
-                    if btn_statistic.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
-                        statisticsClass.clicked_statistics = True
-                        button_sound.play()
                     if btn_satiety.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
                         foodClass.clicked_feed = True
                         button_sound.play()
@@ -349,6 +347,19 @@ def game(slot_index=None):
                             spawn_coin(coins)
                     if btn_health.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
                         medicine()
+            if menu_panel_open:
+                if close_menu_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    menu_panel_open = False
+                    button_sound.play()
+                if menu_exit_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    save_animation_active = True
+                    save_animation_start = time.time()
+                    save_animation_phase = 0
+                    menu_panel_open = False
+                    button_sound.play()
+                if menu_back_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    endGame = True
+                    button_sound.play()
             if exit_prompt_open:
                 if yes_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
                     save_animation_active = True
@@ -383,13 +394,28 @@ def game(slot_index=None):
                 pygame.mixer.music.load(abs_path('sounds/backgroundMusic.ogg'))
                 pygame.mixer.music.play(loops=-1)
 
-        btn_statistic.hover(pos_x, pos_y)
         btn_satiety.hover(pos_x, pos_y)
         btn_toilet.hover(pos_x, pos_y)
         btn_play.hover(pos_x, pos_y)
         btn_health.hover(pos_x, pos_y)
-        exit_game_btn.hover(pos_x, pos_y)
-        exit_game_btn.blit_btn()
+        menu_btn.hover(pos_x, pos_y)
+        menu_btn.blit_btn()
+        if menu_btn.text == '':
+            menu_bar_gap = 8
+            menu_bar_y = menu_btn.rect.centery - 12
+            for i in range(3):
+                pygame.draw.rect(screen, (255, 255, 255), (menu_btn.rect.centerx - 18, menu_bar_y + i * menu_bar_gap, 36, 4))
+
+        if menu_panel_open:
+            panel = pygame.Rect(180, 120, 440, 260)
+            pygame.draw.rect(screen, (80, 50, 30), panel)
+            pygame.draw.rect(screen, (120, 90, 60), panel.inflate(-12, -12))
+            close_menu_btn.blit_btn()
+            close_menu_btn.hover(pos_x, pos_y)
+            menu_exit_btn.blit_btn()
+            menu_back_btn.blit_btn()
+            menu_exit_btn.hover(pos_x, pos_y)
+            menu_back_btn.hover(pos_x, pos_y)
 
         if save_animation_active:
             save_panel = pygame.Rect(220, 170, 360, 140)
