@@ -245,6 +245,7 @@ btn_satiety = Button(85, 467, 150, 50, abs_path('images/sprites/buttonLong_brown
 btn_toilet = Button(285, 467, 150, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Clear')
 btn_play = Button(515, 467, 150, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Play')
 btn_health = Button(715, 467, 150, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Medicine')
+exit_game_btn = Button(560, 40, 120, 40, abs_path('images/sprites/buttonLong_brown.png'), 'Exit')
 
 food = foodClass.FoodMenu(400, 250, 750, 450, abs_path('images/sprites/panel_brown.png'),
                           abs_path('images/sprites/buttonSquare_beige_pressed.png'),
@@ -260,14 +261,25 @@ button_sound.set_volume(0.05)
 
 def game(slot_index=None):
     global endGame, isSleep, daysCount, night_timer, text_timer, cantClear, cantHelp, game_time, start_time
+    endGame = False
+    isSleep = False
     start_time = time.time()
     last_save_time = time.time()
     slot_name = None
+    exit_prompt_open = False
+    save_animation_active = False
+    save_animation_start = 0.0
+    save_animation_phase = 0
     if slot_index is not None:
         slot_data = load_slot(slot_index)
         slot_name = slot_data.get('save_name') or f'Save {slot_index}'
         action.update(slot_data.get('game_data', {}))
         daysCount = int(slot_data.get('days_lived', 0))
+
+    yes_btn = Button(330, 290, 110, 42, abs_path('images/sprites/buttonLong_brown.png'), 'Yes')
+    no_btn = Button(470, 290, 110, 42, abs_path('images/sprites/buttonLong_brown.png'), 'No')
+    dialog_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 20)
+    save_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 18)
 
     pygame.mixer.music.load(abs_path('sounds/backgroundMusic.ogg'))
     pygame.mixer.music.set_volume(0.3)
@@ -308,30 +320,53 @@ def game(slot_index=None):
             if slot_index is not None and time.time() - last_save_time >= 15:
                 save_current_game(slot_index, slot_name)
                 last_save_time = time.time()
-            if not isSleep:
-                if btn_statistic.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
-                    statisticsClass.clicked_statistics = True
+
+            if not exit_prompt_open:
+                if exit_game_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    exit_prompt_open = True
                     button_sound.play()
-                if btn_satiety.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
-                    foodClass.clicked_feed = True
+                if not isSleep:
+                    if btn_statistic.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                        statisticsClass.clicked_statistics = True
+                        button_sound.play()
+                    if btn_satiety.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                        foodClass.clicked_feed = True
+                        button_sound.play()
+                    if action['logiki'] >= 0:
+                        food.pressed(pos_x, pos_y, event)
+                    if btn_toilet.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                        clearAfter()
+                    if btn_play.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                        game_time = time.time()
+                        playClass.clicked_play = True
+                        button_sound.play()
+                        pygame.mixer.music.unload()
+                        pygame.mixer.music.load(abs_path('sounds/game.ogg'))
+                        pygame.mixer.music.set_volume(0.7)
+                        pygame.mixer.music.play()
+                    if event.type == pygame.USEREVENT:
+                        if playClass.clicked_play:
+                            spawn_coin(coins)
+                    if btn_health.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                        medicine()
+            if exit_prompt_open:
+                if yes_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    save_animation_active = True
+                    save_animation_start = time.time()
+                    save_animation_phase = 0
+                    exit_prompt_open = False
                     button_sound.play()
-                if action['logiki'] >= 0:
-                    food.pressed(pos_x, pos_y, event)
-                if btn_toilet.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
-                    clearAfter()
-                if btn_play.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
-                    game_time = time.time()
-                    playClass.clicked_play = True
+                if no_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    exit_prompt_open = False
                     button_sound.play()
-                    pygame.mixer.music.unload()
-                    pygame.mixer.music.load(abs_path('sounds/game.ogg'))
-                    pygame.mixer.music.set_volume(0.7)
-                    pygame.mixer.music.play()
-                if event.type == pygame.USEREVENT:
-                    if playClass.clicked_play:
-                        spawn_coin(coins)
-                if btn_health.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
-                    medicine()
+
+            if save_animation_active:
+                save_animation_phase += 1
+                if time.time() - save_animation_start >= 1.0:
+                    if slot_index is not None:
+                        save_current_game(slot_index, slot_name)
+                    endGame = True
+
             if statistics.exit_rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
                 statisticsClass.clicked_statistics = False
                 button_sound.play()
@@ -353,6 +388,33 @@ def game(slot_index=None):
         btn_toilet.hover(pos_x, pos_y)
         btn_play.hover(pos_x, pos_y)
         btn_health.hover(pos_x, pos_y)
+        exit_game_btn.hover(pos_x, pos_y)
+        exit_game_btn.blit_btn()
+
+        if save_animation_active:
+            save_panel = pygame.Rect(220, 170, 360, 140)
+            pygame.draw.rect(screen, (80, 50, 30), save_panel)
+            pygame.draw.rect(screen, (120, 90, 60), save_panel.inflate(-12, -12))
+            save_text = save_font.render('Saving...', True, (255, 255, 255))
+            save_text_rect = save_text.get_rect(center=(400, 205))
+            screen.blit(save_text, save_text_rect)
+            for i in range(8):
+                angle = (save_animation_phase * 8 + i * 45) * 3.14159 / 180
+                x = 400 + 20 * __import__('math').cos(angle)
+                y = 250 + 20 * __import__('math').sin(angle)
+                pygame.draw.circle(screen, (255, 255, 255), (int(x), int(y)), 4)
+
+        if exit_prompt_open:
+            prompt_panel = pygame.Rect(150, 150, 500, 200)
+            pygame.draw.rect(screen, (80, 50, 30), prompt_panel)
+            pygame.draw.rect(screen, (120, 90, 60), prompt_panel.inflate(-12, -12))
+            prompt_text = dialog_font.render('Would you like to save and exit?', True, (255, 255, 255))
+            prompt_rect = prompt_text.get_rect(center=(400, 190))
+            screen.blit(prompt_text, prompt_rect)
+            yes_btn.blit_btn()
+            no_btn.blit_btn()
+            yes_btn.hover(pos_x, pos_y)
+            no_btn.hover(pos_x, pos_y)
 
         if isSleep:
             screen.blit(night_image, (735, 70))
@@ -435,7 +497,7 @@ def menu():
                 button_sound.play()
                 selected_slot = save_selection_screen()
                 if selected_slot is not None:
-                    endMenu = True
+                    endMenu = False
                     game(selected_slot)
             if rule_btn.rect.collidepoint(pos_x, pos_y) and event.type == pygame.MOUSEBUTTONDOWN:
                 button_sound.play()
