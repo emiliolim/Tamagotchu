@@ -30,11 +30,21 @@ def main(camera_index: int = 0) -> None:
     try:
         import cv2
         import mediapipe as mp
+
+        if not hasattr(mp, "solutions"):
+            try:
+                from mediapipe.python import solutions as mp_solutions
+            except ImportError as error:
+                raise SystemExit(
+                    "MediaPipe is installed, but the legacy hand-tracking API is missing. "
+                    "Reinstall it with: python -m pip install mediapipe==0.10.21"
+                ) from error
+            mp.solutions = mp_solutions
     except ImportError as error:
         raise SystemExit(
             "Camera hand tracking requires OpenCV and MediaPipe. "
-            "Install MediaPipe 0.10.35 with: "
-            "python -m pip install mediapipe==0.10.35"
+            "Install MediaPipe with: "
+            "python -m pip install mediapipe==0.10.21"
         ) from error
 
     hands_api = mp.solutions.hands

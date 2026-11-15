@@ -242,7 +242,7 @@ btn_toilet = Button(285, 467, 150, 50, abs_path('images/sprites/buttonLong_brown
 btn_play = Button(515, 467, 150, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Play')
 btn_health = Button(715, 467, 150, 50, abs_path('images/sprites/buttonLong_brown.png'), 'Medicine')
 exit_game_btn = Button(400, 280, 220, 55, abs_path('images/sprites/buttonLong_brown.png'), 'Exit')
-menu_btn = Button(720, 18, 70, 38, abs_path('images/sprites/buttonLong_brown.png'), '')
+menu_btn = Button(760, 20, 70, 38, abs_path('images/sprites/buttonLong_brown.png'), '')
 
 food = foodClass.FoodMenu(400, 250, 750, 450, abs_path('images/sprites/panel_brown.png'),
                           abs_path('images/sprites/buttonSquare_beige_pressed.png'),
@@ -277,6 +277,8 @@ def game(slot_index=None):
     yes_btn = Button(330, 290, 110, 42, abs_path('images/sprites/buttonLong_brown.png'), 'Yes')
     no_btn = Button(470, 290, 110, 42, abs_path('images/sprites/buttonLong_brown.png'), 'No')
     menu_close_btn = Button(566, 130, 30, 30, abs_path('images/sprites/buttonLong_brown.png'), 'X')
+    menu_close_btn.btn_text = pygame.font.Font(abs_path('font/technicality1.ttf'), 18).render('X', True, (255, 255, 255))
+    menu_close_btn.btn_text_rect = menu_close_btn.btn_text.get_rect(center=menu_close_btn.rect.center)
     restart_btn = Button(300, 390, 150, 44, abs_path('images/sprites/buttonLong_brown.png'), 'Restart')
     exit_to_menu_btn = Button(500, 390, 150, 44, abs_path('images/sprites/buttonLong_brown.png'), 'Exit')
     restart_btn.btn_text = pygame.font.Font(abs_path('font/technicality1.ttf'), 18).render('Restart', True, (255, 255, 255))
@@ -345,12 +347,13 @@ def game(slot_index=None):
                 continue
 
             if menu_open:
-                if btn_statistic.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
-                    statisticsClass.clicked_statistics = True
-                    menu_open = False
-                    button_sound.play()
                 if exit_game_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
                     exit_prompt_open = True
+                    menu_open = False
+                    button_sound.play()
+                    continue
+                if btn_statistic.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    statisticsClass.clicked_statistics = True
                     menu_open = False
                     button_sound.play()
                 if menu_close_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
@@ -424,9 +427,9 @@ def game(slot_index=None):
         btn_health.hover(pos_x, pos_y)
         menu_btn.hover(pos_x, pos_y)
         menu_btn.blit_btn()
-        pygame.draw.rect(screen, (255, 255, 255), (menu_btn.rect.centerx - 18, menu_btn.rect.centery - 8, 36, 4))
-        pygame.draw.rect(screen, (255, 255, 255), (menu_btn.rect.centerx - 18, menu_btn.rect.centery + 2, 36, 4))
-        pygame.draw.rect(screen, (255, 255, 255), (menu_btn.rect.centerx - 18, menu_btn.rect.centery + 12, 36, 4))
+        pygame.draw.rect(screen, (255, 255, 255), (menu_btn.rect.centerx - 18, menu_btn.rect.centery - 11, 36, 4))
+        pygame.draw.rect(screen, (255, 255, 255), (menu_btn.rect.centerx - 18, menu_btn.rect.centery - 1, 36, 4))
+        pygame.draw.rect(screen, (255, 255, 255), (menu_btn.rect.centerx - 18, menu_btn.rect.centery + 9, 36, 4))
 
         if menu_open:
             menu_panel = pygame.Rect(190, 120, 420, 230)
@@ -436,12 +439,10 @@ def game(slot_index=None):
             exit_game_btn.hover(pos_x, pos_y)
             btn_statistic.blit_btn()
             exit_game_btn.blit_btn()
+            menu_close_btn.rect.topleft = (menu_panel.right - 38, menu_panel.top + 10)
+            menu_close_btn.btn_text_rect = menu_close_btn.btn_text.get_rect(center=menu_close_btn.rect.center)
             menu_close_btn.hover(pos_x, pos_y)
             menu_close_btn.blit_btn()
-            x_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 18)
-            x_text = x_font.render('X', True, (255, 255, 255))
-            screen.blit(x_text, x_text.get_rect(center=menu_close_btn.rect.center))
-            menu_close_btn.rect.topleft = (menu_panel.right - 38, menu_panel.top + 10)
 
         if game_over_active:
             pygame.mixer.music.stop()
