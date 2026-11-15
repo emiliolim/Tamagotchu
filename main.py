@@ -214,10 +214,7 @@ def medicine():
 
 
 def gameOver():
-    if action['satiety'] <= 0 or action['toilet'] <= 0 or action['happy'] <= 0 or action['health'] <= 0:
-        pygame.mixer.music.stop()
-        screen.blit(gameover_img, (0, 0))
-        screen.blit(gameover_text, (35, 450))
+    return action['satiety'] <= 0 or action['toilet'] <= 0 or action['happy'] <= 0 or action['health'] <= 0
 
 
 def spawn_coin(group):
@@ -280,7 +277,15 @@ def game(slot_index=None):
     yes_btn = Button(330, 290, 110, 42, abs_path('images/sprites/buttonLong_brown.png'), 'Yes')
     no_btn = Button(470, 290, 110, 42, abs_path('images/sprites/buttonLong_brown.png'), 'No')
     menu_close_btn = Button(566, 130, 30, 30, abs_path('images/sprites/buttonLong_brown.png'), 'X')
+    restart_btn = Button(300, 390, 150, 44, abs_path('images/sprites/buttonLong_brown.png'), 'Restart')
+    exit_to_menu_btn = Button(500, 390, 150, 44, abs_path('images/sprites/buttonLong_brown.png'), 'Exit')
+    restart_btn.btn_text = pygame.font.Font(abs_path('font/technicality1.ttf'), 18).render('Restart', True, (255, 255, 255))
+    restart_btn.btn_text_rect = restart_btn.btn_text.get_rect(center=restart_btn.rect.center)
+    exit_to_menu_btn.btn_text = pygame.font.Font(abs_path('font/technicality1.ttf'), 18).render('Exit', True, (255, 255, 255))
+    exit_to_menu_btn.btn_text_rect = exit_to_menu_btn.btn_text.get_rect(center=exit_to_menu_btn.rect.center)
     dialog_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 20)
+    game_over_title_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 48)
+    game_over_text_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 20)
     save_font = pygame.font.Font(abs_path('font/technicality1.ttf'), 18)
 
     pygame.mixer.music.load(abs_path('sounds/backgroundMusic.ogg'))
@@ -312,6 +317,8 @@ def game(slot_index=None):
         btn_health.blit_btn()
 
         pos_x, pos_y = pygame.mouse.get_pos()
+        game_over_active = (action['satiety'] <= 0 or action['toilet'] <= 0 or action['happy'] <= 0 or action['health'] <= 0)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT or event.type == pygame.K_ESCAPE:
                 endGame = True
@@ -321,6 +328,21 @@ def game(slot_index=None):
             if slot_index is not None and time.time() - last_save_time >= 15:
                 save_current_game(slot_index, slot_name)
                 last_save_time = time.time()
+
+            if game_over_active:
+                if restart_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    button_sound.play()
+                    reset_game_state()
+                    if slot_index is not None:
+                        save_current_game(slot_index, f'Save {slot_index}')
+                    start_time = time.time()
+                    last_save_time = time.time()
+                    game_over_active = False
+                if exit_to_menu_btn.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
+                    button_sound.play()
+                    endGame = True
+                    return
+                continue
 
             if menu_open:
                 if btn_statistic.rect.collidepoint((pos_x, pos_y)) and event.type == pygame.MOUSEBUTTONDOWN:
@@ -420,6 +442,24 @@ def game(slot_index=None):
             x_text = x_font.render('X', True, (255, 255, 255))
             screen.blit(x_text, x_text.get_rect(center=menu_close_btn.rect.center))
             menu_close_btn.rect.topleft = (menu_panel.right - 38, menu_panel.top + 10)
+
+        if game_over_active:
+            pygame.mixer.music.stop()
+            screen.blit(gameover_img, (0, 0))
+            message = game_over_text_font.render(
+                'Your tamogotchi died. Would you like to restart game or exit to menu?',
+                True,
+                (255, 255, 255)
+            )
+            screen.blit(message, message.get_rect(center=(400, 330)))
+            restart_btn.rect.center = (300, 390)
+            exit_to_menu_btn.rect.center = (500, 390)
+            restart_btn.btn_text_rect = restart_btn.btn_text.get_rect(center=restart_btn.rect.center)
+            exit_to_menu_btn.btn_text_rect = exit_to_menu_btn.btn_text.get_rect(center=exit_to_menu_btn.rect.center)
+            restart_btn.hover(pos_x, pos_y)
+            exit_to_menu_btn.hover(pos_x, pos_y)
+            restart_btn.blit_btn()
+            exit_to_menu_btn.blit_btn()
 
         if save_animation_active:
             save_panel = pygame.Rect(220, 170, 360, 140)
